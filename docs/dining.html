@@ -34,6 +34,57 @@
         .speak-btn.disabled:active {
             transform: none;
         }
+        
+        /* Language selection control */
+        .language-control {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            padding: 0.8rem;
+            z-index: 100;
+        }
+        
+        .language-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .language-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .language-option label {
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .language-control {
+                bottom: 1rem;
+                left: 1rem;
+                padding: 0.6rem;
+            }
+        }
+        
+        /* External TTS service selector */
+        .tts-service-selector {
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .tts-service-selector select {
+            margin-top: 0.5rem;
+            padding: 0.3rem;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -299,11 +350,84 @@
         <div class="japan-decor"></div>
         
         <a href="index.html" class="nav-back">↩</a>
+        
+        <div class="language-control">
+            <div class="language-selector">
+                <div class="language-option">
+                    <input type="checkbox" id="enable-cn" checked>
+                    <label for="enable-cn">中文朗读 (Chinese)</label>
+                </div>
+                <div class="language-option">
+                    <input type="checkbox" id="enable-en" checked>
+                    <label for="enable-en">英文朗读 (English)</label>
+                </div>
+                <div class="language-option">
+                    <input type="checkbox" id="enable-jp" checked>
+                    <label for="enable-jp">日语朗读 (Japanese)</label>
+                </div>
+            </div>
+            
+            <div class="tts-service-selector">
+                <label for="tts-service">TTS Provider:</label>
+                <select id="tts-service">
+                    <option value="native">浏览器内置 (Browser)</option>
+                    <option value="google">Google TTS (External)</option>
+                </select>
+            </div>
+        </div>
     </div>
     <script>
         // Initialize speech synthesis
         const speechSynthesis = window.speechSynthesis;
         let currentUtterance = null;
+        let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        // Default speech settings
+        let speechSettings = {
+            cn: { enabled: true, service: 'native' },
+            en: { enabled: true, service: 'native' },
+            jp: { enabled: true, service: 'native' }
+        };
+        
+        // Load saved settings from localStorage if available
+        try {
+            const savedSettings = localStorage.getItem('speechSettings');
+            if (savedSettings) {
+                speechSettings = JSON.parse(savedSettings);
+                
+                // Update checkboxes based on saved settings
+                document.getElementById('enable-cn').checked = speechSettings.cn.enabled;
+                document.getElementById('enable-en').checked = speechSettings.en.enabled;
+                document.getElementById('enable-jp').checked = speechSettings.jp.enabled;
+                
+                // Update service selector if saved
+                if (speechSettings.service) {
+                    document.getElementById('tts-service').value = speechSettings.service;
+                }
+            }
+        } catch (e) {
+            console.warn('Error loading saved settings:', e);
+        }
+        
+        // Function to save settings
+        function saveSettings() {
+            speechSettings.cn.enabled = document.getElementById('enable-cn').checked;
+            speechSettings.en.enabled = document.getElementById('enable-en').checked;
+            speechSettings.jp.enabled = document.getElementById('enable-jp').checked;
+            speechSettings.service = document.getElementById('tts-service').value;
+            
+            try {
+                localStorage.setItem('speechSettings', JSON.stringify(speechSettings));
+            } catch (e) {
+                console.warn('Error saving settings:', e);
+            }
+        }
+        
+        // Add event listeners to checkboxes and service selector
+        document.getElementById('enable-cn').addEventListener('change', saveSettings);
+        document.getElementById('enable-en').addEventListener('change', saveSettings);
+        document.getElementById('enable-jp').addEventListener('change', saveSettings);
+        document.getElementById('tts-service').addEventListener('change', saveSettings);
 
         // Function to stop current speech
         function stopSpeaking() {
@@ -317,22 +441,79 @@
         function speak(text, lang) {
             stopSpeaking();
             
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = lang;
-            utterance.rate = 0.9;
-            utterance.pitch = 1;
-            utterance.volume = 1;
+            // Check if speech is enabled for this language
+            const langCode = lang.split('-')[0];
+            if ((langCode === 'zh' && !speechSettings.cn.enabled) ||
+                (langCode === 'en' && !speechSettings.en.enabled) ||
+                (langCode === 'ja' && !speechSettings.jp.enabled)) {
+                return;
+            }
             
-            currentUtterance = utterance;
-            speechSynthesis.speak(utterance);
+            const service = document.getElementById('tts-service').value;
+            
+            if (service === 'native') {
+                // Use built-in browser TTS
+                try {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = lang;
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1;
+                    utterance.volume = 1;
+                    
+                    currentUtterance = utterance;
+                    speechSynthesis.speak(utterance);
+                } catch (e) {
+                    console.error('Error using browser TTS:', e);
+                    fallbackSpeak(text, lang);
+                }
+            } else if (service === 'google') {
+                // Use Google TTS as fallback
+                googleTTS(text, lang);
+            }
         }
-
+        
+        // Google TTS fallback (opens in new window)
+        function googleTTS(text, lang) {
+            // Convert language codes to what Google TTS expects
+            const langMap = {
+                'zh-CN': 'zh',
+                'en-US': 'en',
+                'ja-JP': 'ja'
+            };
+            
+            const googleLang = langMap[lang] || lang.split('-')[0];
+            const encodedText = encodeURIComponent(text);
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=${googleLang}&client=tw-ob`;
+            
+            // For mobile, we'll just open in a new window
+            // For desktop, we could create an audio element and play
+            if (isMobile) {
+                window.open(url, '_blank');
+            } else {
+                const audio = new Audio(url);
+                audio.play().catch(err => {
+                    console.error('Error playing Google TTS:', err);
+                    window.open(url, '_blank');
+                });
+            }
+        }
+        
         // Function to create speak button
-        function createSpeakButton(text, lang, title) {
+        function createSpeakButton(text, lang, title, langType) {
             const speakBtn = document.createElement('button');
             speakBtn.className = 'speak-btn';
             speakBtn.innerHTML = '🔊';
             speakBtn.title = title;
+            speakBtn.setAttribute('data-lang-type', langType);
+            
+            // Check if this language is disabled
+            const langCode = lang.split('-')[0];
+            if ((langCode === 'zh' && !speechSettings.cn.enabled) ||
+                (langCode === 'en' && !speechSettings.en.enabled) ||
+                (langCode === 'ja' && !speechSettings.jp.enabled)) {
+                speakBtn.classList.add('disabled');
+            }
+            
             speakBtn.onclick = () => speak(text, lang);
             return speakBtn;
         }
@@ -345,24 +526,80 @@
                 const enElement = phrase.querySelector('.en');
                 if (enElement) {
                     const enText = enElement.textContent;
-                    enElement.appendChild(createSpeakButton(enText, 'en-US', 'Click to speak English'));
+                    enElement.appendChild(createSpeakButton(enText, 'en-US', 'Click to speak English', 'en'));
                 }
 
                 // Chinese
                 const cnElement = phrase.querySelector('.cn');
                 if (cnElement && cnElement.textContent.trim()) {
                     const cnText = cnElement.textContent;
-                    cnElement.appendChild(createSpeakButton(cnText, 'zh-CN', '点击朗读中文'));
+                    cnElement.appendChild(createSpeakButton(cnText, 'zh-CN', '点击朗读中文', 'cn'));
                 }
 
                 // Japanese
                 const jpElement = phrase.querySelector('.jp');
                 if (jpElement && jpElement.textContent.trim()) {
                     const jpText = jpElement.textContent;
-                    jpElement.appendChild(createSpeakButton(jpText, 'ja-JP', '日本語を読み上げる'));
+                    jpElement.appendChild(createSpeakButton(jpText, 'ja-JP', '日本語を読み上げる', 'jp'));
                 }
             });
+            
+            // Update button states when language settings change
+            function updateButtonStates() {
+                document.querySelectorAll('.speak-btn').forEach(btn => {
+                    const langType = btn.getAttribute('data-lang-type');
+                    if (langType === 'cn') {
+                        btn.classList.toggle('disabled', !speechSettings.cn.enabled);
+                    } else if (langType === 'en') {
+                        btn.classList.toggle('disabled', !speechSettings.en.enabled);
+                    } else if (langType === 'jp') {
+                        btn.classList.toggle('disabled', !speechSettings.jp.enabled);
+                    }
+                });
+            }
+            
+            // Add event listeners to update button states
+            document.getElementById('enable-cn').addEventListener('change', updateButtonStates);
+            document.getElementById('enable-en').addEventListener('change', updateButtonStates);
+            document.getElementById('enable-jp').addEventListener('change', updateButtonStates);
         });
+        
+        // Check for speech synthesis support and provide feedback
+        if (!window.speechSynthesis) {
+            console.warn('Speech synthesis not supported in this browser');
+            // Default to Google TTS if speech synthesis isn't available
+            document.getElementById('tts-service').value = 'google';
+            saveSettings();
+        } else {
+            // Check available voices
+            let voices = [];
+            
+            function checkVoices() {
+                voices = speechSynthesis.getVoices();
+                
+                // Log available languages
+                console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+                
+                // Check if we have voices for our languages
+                const hasZhVoice = voices.some(v => v.lang.startsWith('zh'));
+                const hasEnVoice = voices.some(v => v.lang.startsWith('en'));
+                const hasJaVoice = voices.some(v => v.lang.startsWith('ja'));
+                
+                console.log('Voice support - Chinese:', hasZhVoice, 'English:', hasEnVoice, 'Japanese:', hasJaVoice);
+                
+                // If on mobile and lacking important voices, suggest Google TTS
+                if (isMobile && (!hasEnVoice || !hasJaVoice)) {
+                    document.getElementById('tts-service').value = 'google';
+                    saveSettings();
+                }
+            }
+            
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = checkVoices;
+            }
+            
+            checkVoices();
+        }
     </script>
 </body>
 </html>
