@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="日本旅行Mt_fuji中英日文对照短语卡片">
+    <meta name="theme-color" content="#e94560">
+    <title>Mt_fuji | Japan Travel Phrases</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .speak-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.2rem;
+            margin-left: 0.5rem;
+            color: #e94560;
+            transition: transform 0.2s;
+        }
+        .speak-btn:hover {
+            transform: scale(1.1);
+        }
+        .speak-btn:active {
+            transform: scale(0.95);
+        }
+        .speak-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .speak-btn.disabled:hover {
+            transform: none;
+        }
+        .speak-btn.disabled:active {
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-title">
+            <h1>🗻 Mt_fuji / Mt_fuji Phrases</h1>
+            <div class="page-title-decoration">
+                <span class="page-title-icon">🗻</span>
+            </div>
+        </div>
+        
+        <div class="japan-decor"></div>
+        
+        <div class="card-container">
+            <div class="card">
+                <h2>🗻 04.04 Travel to Kawaguchiko</h2>
+
+        <div class="phrase">
+          <p class="en">How do I get from Mishima Station to Kawaguchiko?</p>
+          <p class="cn">从三岛站到河口湖怎么走？</p>
+          <p class="jp">三島駅から河口湖へはどうやって行けばいいですか？</p>
+        </div>
+      
+        <div class="phrase">
+          <p class="en">What time does the last bus to Kawaguchiko leave?</p>
+          <p class="cn">去河口湖的末班车几点发车？</p>
+          <p class="jp">河口湖行きの最終バスは何時ですか？</p>
+        </div>
+      <h2>🗻 04.04 Kawaguchiko</h2>
+
+        <div class="phrase">
+          <p class="en">What are the operating hours for the Kawaguchiko Ropeway?</p>
+          <p class="cn">河口湖缆车的运营时间是什么时候？</p>
+          <p class="jp">河口湖ロープウェイの営業時間は何時ですか？</p>
+        </div>
+      
+        <div class="phrase">
+          <p class="en">Is Mt. Fuji visible today?</p>
+          <p class="cn">今天能看到富士山吗？</p>
+          <p class="jp">今日は富士山は見えますか？</p>
+        </div>
+      
+        <div class="phrase">
+          <p class="en">What's the best time to photograph Mt. Fuji?</p>
+          <p class="cn">拍摄富士山的最佳时间是什么时候？</p>
+          <p class="jp">富士山の写真を撮るのに一番いい時間は？</p>
+        </div>
+      <h2>🗻 04.04 Arakurayama Sengen Shrine</h2>
+
+        <div class="phrase">
+          <p class="en">Where is Arakurayama Sengen Shrine?</p>
+          <p class="cn">新仓山浅间神社在哪里？</p>
+          <p class="jp">新倉山浅間神社はどこですか？</p>
+        </div>
+      <h2>🗻 04.04 Kawaguchiko Onsen</h2>
+
+        <div class="phrase">
+          <p class="en">What time does the onsen open/close?</p>
+          <p class="cn">温泉几点开放/关闭？</p>
+          <p class="jp">温泉は何時にオープン/クローズしますか？</p>
+        </div>
+      
+        <div class="phrase">
+          <p class="en">Are there separate onsen baths for men and women?</p>
+          <p class="cn">男女温泉是分开的吗？</p>
+          <p class="jp">男女別の温泉がありますか？</p>
+        </div>
+      
+            </div>
+        </div>
+        
+        <div class="japan-decor"></div>
+        
+        <a href="index.html" class="nav-back">↩</a>
+    </div>
+    <script>
+        // Initialize speech synthesis
+        const speechSynthesis = window.speechSynthesis;
+        let currentUtterance = null;
+
+        // Function to stop current speech
+        function stopSpeaking() {
+            if (currentUtterance) {
+                speechSynthesis.cancel();
+                currentUtterance = null;
+            }
+        }
+
+        // Function to speak text
+        function speak(text, lang) {
+            stopSpeaking();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            
+            currentUtterance = utterance;
+            speechSynthesis.speak(utterance);
+        }
+
+        // Function to create speak button
+        function createSpeakButton(text, lang, title) {
+            const speakBtn = document.createElement('button');
+            speakBtn.className = 'speak-btn';
+            speakBtn.innerHTML = '🔊';
+            speakBtn.title = title;
+            speakBtn.onclick = () => speak(text, lang);
+            return speakBtn;
+        }
+
+        // Add speak buttons to all phrases
+        document.addEventListener('DOMContentLoaded', () => {
+            const phrases = document.querySelectorAll('.phrase');
+            phrases.forEach(phrase => {
+                // English
+                const enElement = phrase.querySelector('.en');
+                if (enElement) {
+                    const enText = enElement.textContent;
+                    enElement.appendChild(createSpeakButton(enText, 'en-US', 'Click to speak English'));
+                }
+
+                // Chinese
+                const cnElement = phrase.querySelector('.cn');
+                if (cnElement && cnElement.textContent.trim()) {
+                    const cnText = cnElement.textContent;
+                    cnElement.appendChild(createSpeakButton(cnText, 'zh-CN', '点击朗读中文'));
+                }
+
+                // Japanese
+                const jpElement = phrase.querySelector('.jp');
+                if (jpElement && jpElement.textContent.trim()) {
+                    const jpText = jpElement.textContent;
+                    jpElement.appendChild(createSpeakButton(jpText, 'ja-JP', '日本語を読み上げる'));
+                }
+            });
+        });
+    </script>
+</body>
+</html>
